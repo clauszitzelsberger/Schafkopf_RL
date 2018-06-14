@@ -1,8 +1,3 @@
-# state player greift mit self auf state_overall zu, hat aber somit nicht die infos die von playing schafkopf auf
-# state_overall geschrieben werden und bekommt somit nur die default werte
-# überprüfen ob es möglich ist, dass state_player nicht auf state_overview zugreift und die Daten als Argument
-# übergeben bekommt
-
 from rules import Rules
 import numpy as np
 

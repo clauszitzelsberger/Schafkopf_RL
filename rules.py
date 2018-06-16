@@ -1,5 +1,6 @@
 import numpy as np
 from random import shuffle
+import copy
 
 class Rules():
     def __init__(self):
@@ -29,12 +30,13 @@ class Rules():
         self.game_names = ['sauspiel', 'solo', 'wenz']
 
         ############# eichel # gras # herz # schellen #
-        self.games = [[0,0], [1,0],        [3,0], #sauspiel
+        self.games = [[None, None],               #no game
+                      [0,0], [1,0],        [3,0], #sauspiel
                       [0,1], [1,1], [2,1], [3,1], #solo
                       [0,2], [1,2], [2,2], [3,2]] #wenz
 
     def shuffle_cards(self):
-        cards = self.cards
+        cards = copy.copy(self.cards)
         shuffle(cards)
         return cards
 

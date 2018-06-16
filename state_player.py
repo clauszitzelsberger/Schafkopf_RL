@@ -138,8 +138,7 @@ class state_player():
 
         game_player = state_overall.state_overall['game_player']
         dealed_cards = self.state_player['dealed_cards']
-        possible_games = self.rules.games[:3]
-        possible_games.append(None)
+        possible_games = self.rules.games[:4] # [None, None] and 3 games of type sauspiel
 
         # No player defined: one is free to choose a game
         if game_player == None:
@@ -162,5 +161,7 @@ class state_player():
                     or [color,7] in dealed_cards:
                     possible_games.remove([color, 0])
         else:
-            possible_games = [None]
+            possible_games = []
+        #print('Dealed Cards: {}'.format(dealed_cards))
+        #print('Possible Games: {}'.format(possible_games))
         return possible_games

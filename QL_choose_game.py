@@ -1,9 +1,15 @@
 import tensorflow as tf
+from collections import deque
+import numpy as np
 
 class QNetwork:
-    def __init__(self, learning_rate=0.01, state_size=18,
+    def __init__(self, learning_rate=0.01, state_size=8,
                  action_size=4, hidden_size=10,
                  name='QNetwork'):
+        """
+        state_size: 8 card
+        action_size: 3 possible (sauspiel) games or no game
+        """
         # state inputs to the Q-network
         with tf.variable_scope(name):
             self.inputs_ = tf.placeholder(tf.float32, [None, state_size], name='inputs')
@@ -31,7 +37,6 @@ class QNetwork:
             self.loss = tf.reduce_mean(tf.square(self.targetQs_ - self.Q))
             self.opt = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
 
-from collections import deque
 
 class Memory():
     def __init__(self, max_size=1000):

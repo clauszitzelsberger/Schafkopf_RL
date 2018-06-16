@@ -103,7 +103,6 @@ class state_overall():
             team_mate = self.get_team_mate()
             game_players = [game_player, team_mate]
             total_score = sum([score_list[i] for i in game_players])
-            opponents.remove(team_mate)
 
             # game players loose Schneider schwarz
             if total_score == 0:

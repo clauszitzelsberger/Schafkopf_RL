@@ -13,7 +13,7 @@ class playing_schafkopf():
     def __init__(self):
         self.rules = Rules()
 
-        self.train_episodes = 10000          # max number of episodes to learn from
+        self.train_episodes = 50000          # max number of episodes to learn from
         #self.max_steps = 200                # max steps in an episode
         self.gamma = 1                       # future reward discount
 
@@ -23,8 +23,8 @@ class playing_schafkopf():
         self.decay_rate = 0.0001            # exponential decay rate for exploration prob
 
         # Network parameters
-        self.hidden_size = 64               # number of units in each Q-network hidden layer
-        self.learning_rate = 0.00001         # Q-network learning rate
+        self.hidden_size = 64               # number of units in each Q-network hidden layer 64
+        self.learning_rate = 0.00001         # Q-network learning rate 0.00001
 
         # Memory parameters
         self.memory_size = 10000            # memory capacity
@@ -67,6 +67,7 @@ class playing_schafkopf():
         """
         random_selection: True, game selected radom,
             False, game selected by Q-Net
+        sess: tensorflow session
         """
 
         first_player = self.state_overall.state_overall['first_player']
@@ -77,7 +78,8 @@ class playing_schafkopf():
                    self.players[(first_player+2)%4],
                    self.players[(first_player+3)%4]]
 
-        for i in range(len(players)):
+        #for i in range(len(players)):
+        for i in [0]:
             possible_games = players[i].\
                 get_possible_games_to_play(self.state_overall)
 
@@ -85,14 +87,16 @@ class playing_schafkopf():
                 selected_game = random.choice(possible_games)
             else:
                 dealed_cards = players[i].state_player['dealed_cards']
-                state = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                state = self.rules.get_one_hot_cards(dealed_cards_indexed)
                 state = np.array(state)
                 feed = {self.QNetwork.inputs_: state.reshape((1, *state.shape))}
                 Qs = sess.run(self.QNetwork.output, feed_dict=feed)
                 Qs = Qs[0].tolist()
                 possible_actions = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
                 Qs_subset = [i for i in Qs if Qs.index(i) in possible_actions]
-                action = np.argmax(Qs_subset)
+                #action = np.argmax(Qs_subset)
+                action = Qs.index(max(Qs_subset))
                 selected_game = self.rules.games[action]
 
             if selected_game != [None, None]:
@@ -157,7 +161,8 @@ class playing_schafkopf():
             else:
                 game_player = self.state_overall.state_overall['game_player']
             dealed_cards = self.players[game_player].state_player['dealed_cards']
-            state = [self.rules.get_index(card, 'card') for card in dealed_cards]
+            dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
+            state = self.rules.get_one_hot_cards(dealed_cards_indexed)
 
             if game != [None, None]:
                 while self.state_overall.state_overall['trick_number'] < 8:
@@ -165,6 +170,7 @@ class playing_schafkopf():
                 rewards = self.state_overall.get_reward_list()
             else:
                 rewards = [0,0,0,0]
+                
 
             # Reward
             reward = rewards[game_player]
@@ -175,13 +181,21 @@ class playing_schafkopf():
     def training(self):
 
         saver = tf.train.Saver()
-        reward_list_100 = []
-        total_reward=0
+        reward_list1 = []
+        reward_list2 = []
+        reward_list3 = []
+        reward_list4 = []
+        #reward_list_sum = []
+        total_reward1=0
+        total_reward2=0
+        total_reward3=0
+        total_reward4=0
+        #total_reward_sum=0
         with tf.Session() as sess:
             # Initialize variables
             sess.run(tf.global_variables_initializer())
 
-            for e in range(1, self.train_episodes):
+            for e in range(1, self.train_episodes+1):
                 self.reset_epsiode()
                 self.dealing()
                 #total_reward = 0
@@ -207,7 +221,8 @@ class playing_schafkopf():
                 else:
                     game_player = self.state_overall.state_overall['game_player']
                 dealed_cards = self.players[game_player].state_player['dealed_cards']
-                state = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                state = self.rules.get_one_hot_cards(dealed_cards_indexed)
 
                 if self.state_overall.state_overall['game'] != [None, None]:
                     while self.state_overall.state_overall['trick_number'] < 8:
@@ -220,7 +235,10 @@ class playing_schafkopf():
                 reward = rewards[game_player]
                 self.memory.add((state, action, reward))
 
-
+                reward2 = rewards[1]
+                reward3 = rewards[2]
+                reward4 = rewards[3]
+                #reward_sum=sum(rewards)
 
 
                 # Sample mini-batch from memory
@@ -240,27 +258,52 @@ class playing_schafkopf():
                                                self.QNetwork.targetQs_: targets,
                                                self.QNetwork.actions_: actions})
 
-                total_reward+=reward
-                if e%100==0:
+                total_reward1+=reward
+                total_reward2+=reward2
+                total_reward3+=reward3
+                total_reward4+=reward4
+                #total_reward_sum+=reward_sum
+
+                show_every = 1000
+                if e%show_every==0:
                     print('Episode: {}'.format(e),
                           'Total reward: {}'.format(reward),
                           'Training loss: {:.4f}'.format(loss))
-                    reward_list_100.append(total_reward)
-                    total_reward=0
+                    reward_list1.append(total_reward1/show_every)
+                    reward_list2.append(total_reward2/show_every)
+                    reward_list3.append(total_reward3/show_every)
+                    reward_list4.append(total_reward4/show_every)
+                    #reward_list_sum.append(total_reward_sum)
+
+                    total_reward1=0
+                    total_reward2=0
+                    total_reward3=0
+                    total_reward4=0
+                    #total_reward_sum=0
 
 
 
             #print('Total Reward: {}'.format(total_reward))
-            self.plot_reward(reward_list_100)
+            self.plot_reward(reward_list1,
+                             reward_list2,
+                             reward_list3,
+                             reward_list4)
 
 
             saver.save(sess, "checkpoints/schafkopf.ckpt")
 
-    def plot_reward(self, reward_list):
+    def plot_reward(self, reward_list, reward_list2, reward_list3, reward_list4):
         x = range(len(reward_list))
         y = reward_list
+        y2 = reward_list2
+        y3 = reward_list3
+        y4 = reward_list4
         fig, ax = plt.subplots()
-        ax.plot(x, y)
-        ax.set(xlabel='100 epochs', ylabel='total reward in 100 epochs',
+        ax.plot(x, y, 'black', alpha=.5, label='RL bot')
+        ax.plot(x, y2, 'red', alpha=.5, label='player 2 (random)')
+        ax.plot(x, y3, 'yellow', alpha=.5, label='player 3 (random)')
+        ax.plot(x, y4, 'orange', alpha=.5, label='player 4 (random)')
+        ax.set(xlabel='epochs x1000', ylabel='avg reward',
                title='Reward ~ epochs')
+        ax.legend()
         plt.show()

@@ -4,7 +4,7 @@ import random
 
 class state_overall():
     def __init__(self):
-        dealer = random.choice([0,1,2,3])
+        dealer = 3#random.choice([0,1,2,3])
         game = [None, None]
         game_player = None
         first_player = (dealer+1)%4
@@ -102,6 +102,7 @@ class state_overall():
         if game_name == 'sauspiel':
             team_mate = self.get_team_mate()
             game_players = [game_player, team_mate]
+            opponents.remove(team_mate)
             total_score = sum([score_list[i] for i in game_players])
 
             # game players loose Schneider schwarz

@@ -103,3 +103,7 @@ class Rules():
             return self.cards.index(item)
         else:
             return self.games.index(item)
+
+    def get_one_hot_cards(self, cards_list_indexed):
+        number_cards = len(self.cards)
+        return [int(i in cards_list_indexed) for i in range(number_cards)]

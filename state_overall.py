@@ -58,12 +58,17 @@ class state_overall():
                 unter_colors = [color for color, number in unter]
                 highest_unter = [min(unter_colors), 4]
                 return cards_list.index(highest_unter)
-            herz = self.rules.get_specific_cards(trumps, [2, None])
-            herz = [[color, number] for color, number in herz if number not in [4,5]]
-            if len(herz)>0:
-                herz_numbers = [number for color, number in herz]
-                highest_herz = [2, max(herz_numbers)]
-                return cards_list.index(highest_herz)
+            if game_name[1] != 'wenz':
+                if game_name[1] == 'sauspiel':
+                    trump_color=2
+                else: #solo
+                    trump_color=game[0]
+                trump_colors = self.rules.get_specific_cards(trumps, [trump_color, None])
+                trump_colors = [[color, number] for color, number in trump_colors if number not in [4,5]]
+                if len(trump_colors)>0:
+                    trump_colors_numbers = [number for color, number in trump_colors]
+                    highest_trump_color = [trump_color, max(trump_colors_numbers)]
+                    return cards_list.index(highest_trump_color)
 
         # No trumps in cards
         else:
@@ -105,36 +110,57 @@ class state_overall():
             team_mate = self.get_team_mate()
             game_players = [game_player, team_mate]
             opponents.remove(team_mate)
-            total_score = sum([score_list[i] for i in game_players])
+        else: #solo
+            game_players = [game_player]
 
-            # game players loose Schneider schwarz
-            if total_score == 0:
-                winner = opponents
-                reward = 30
+        total_score = sum([score_list[i] for i in game_players])
 
-            # game players loose Schneider
-            elif 0 < total_score <= 30:
-                winner = opponents
-                reward = 20
+        # Basic reward depending on game type
+        reward = self.rules.reward_basic[game[0]]
 
-            # game players loose
-            elif 30 < total_score <= 60:
-                winner = opponents
-                reward = 10
+        # game players loose Schneider schwarz
+        if total_score == self.rules.winning_thresholds[0]:
+            winner = opponents
+            reward += self.rules.reward_schneider[2]
 
-            # game players win
-            elif 60 < total_score <= 90:
-                winner = game_players
-                reward = 10
+        # game players loose Schneider
+        elif self.rules.winning_thresholds[0] \
+        < total_score <= \
+        self.rules.winning_thresholds[1]:
+            winner = opponents
+            reward = self.rules.reward_schneider[1]
 
-            # game players win Schneider
-            elif 90 < total_score <=119:
-                winner = game_players
-                reward = 20
+        # game players loose
+        elif self.rules.winning_thresholds[1] \
+        < total_score <= \
+        self.rules.winning_thresholds[2]:
+            winner = opponents
+            reward = self.rules.reward_schneider[0]
 
-            # game players win Schneider schwarz
-            else:
-                winner = game_players
-                reward = 30
+        # game players win
+        elif self.rules.winning_thresholds[2] \
+        < total_score <= \
+        self.rules.winning_thresholds[3]:
+            winner = game_players
+            reward = self.rules.reward_schneider[0]
 
-        return [reward if i in winner else -reward for i in all]
+        # game players win Schneider
+        elif self.rules.winning_thresholds[3] \
+        < total_score <= \
+        self.rules.winning_thresholds[4]:
+            winner = game_players
+            reward = self.rules.reward_schneider[1]
+
+        # game players win Schneider schwarz
+        else:
+            winner = game_players
+            reward = self.rules.reward_schneider[2]
+
+        if winner == game_players:
+            f_winner=(4-len(winner)) / len(winner)
+            f_looser=1
+        else:
+            f_winner=1
+            f_looser=(4-len(winner)) / len(winner)
+
+        return [reward*f_winner if i in winner else -reward*f_looser for i in all]

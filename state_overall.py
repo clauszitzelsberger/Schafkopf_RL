@@ -4,7 +4,7 @@ import random
 
 class state_overall():
     def __init__(self):
-        dealer = 3#random.choice([0,1,2,3])
+        dealer = random.choice([0,1,2,3])
         game = [None, None]
         game_player = None
         first_player = (dealer+1)%4
@@ -19,6 +19,7 @@ class state_overall():
                           [[None, None], [None, None], [None, None], [None, None]],
                           [[None, None], [None, None], [None, None], [None, None]]]
         davongelaufen = False
+        mistake = False #if player selects wrong game
         scores = [0, 0, 0, 0]
 
         self.state_overall = {'game': game,
@@ -28,6 +29,7 @@ class state_overall():
                               'dealer': dealer,
                               'course_of_game': course_of_game,
                               'davongelaufen': davongelaufen,
+                              'mistake': mistake,
                               'scores': scores}
 
         self.rules = Rules()

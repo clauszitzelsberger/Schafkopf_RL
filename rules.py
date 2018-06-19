@@ -35,6 +35,11 @@ class Rules():
                       [0,1], [1,1], [2,1], [3,1], #solo
                       [0,2], [1,2], [2,2], [3,2]] #wenz
 
+        self.reward_basic = [0, 20, 50, 50] # no game, sauspiel, solo, wenz
+        self.reward_schneider = [0, 10, 20] # normal, schneider, schneider schwarz
+
+        self.winning_thresholds = [0, 30, 60, 90, 119]
+
     def shuffle_cards(self):
         cards = copy.copy(self.cards)
         shuffle(cards)
@@ -73,8 +78,15 @@ class Rules():
         if self.name_of_game(game)[1] == 'sauspiel':
             trump_colors = [2] #Herz
             trump_numbers = [4, 5] # Unter, Ober
-            return [[color, number] for color, number in cards_list \
-                if color in trump_colors or number in trump_numbers]
+
+        elif self.name_of_game(game)[1] == 'solo':
+            trump_colors = [game[0]]
+            trump_numbers = [4, 5]
+        else: #wenz
+            trump_colors = [None]
+            trump_numbers = [4]
+        return [[color, number] for color, number in cards_list \
+            if color in trump_colors or number in trump_numbers]
 
     def get_specific_cards2(self,
                             cards_list,
@@ -82,13 +94,10 @@ class Rules():
                             card=[None, None],
                             wo_trumps=True):
         if wo_trumps:
-            if self.name_of_game(game)[1] == 'sauspiel':
-                cards_in_color=\
-                    self.get_specific_cards(cards_list, card)
-                trumps=\
-                    self.get_trumps(game, cards_list)
-                return [cards for cards in cards_in_color \
-                    if cards not in trumps]
+            cards_in_color = self.get_specific_cards(cards_list, [card[0], None])
+            trumps = self.get_trumps(game, cards_list)
+            return [cards for cards in cards_in_color \
+                if cards not in trumps]
         else:
             return self.get_specific_cards(cards_list, card)
 

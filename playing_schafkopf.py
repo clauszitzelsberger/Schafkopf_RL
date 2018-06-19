@@ -13,22 +13,22 @@ class playing_schafkopf():
     def __init__(self):
         self.rules = Rules()
 
-        self.train_episodes = 50000          # max number of episodes to learn from
+        self.train_episodes = 100000          # max number of episodes to learn from
         #self.max_steps = 200                # max steps in an episode
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
         self.explore_start = 1.0            # exploration probability at start
-        self.explore_stop = 0.01            # minimum exploration probability
+        self.explore_stop = 0.01            # minimum exploration probability 0.01
         self.decay_rate = 0.0001            # exponential decay rate for exploration prob
 
         # Network parameters
         self.hidden_size = 64               # number of units in each Q-network hidden layer 64
-        self.learning_rate = 0.00001         # Q-network learning rate 0.00001
+        self.learning_rate = 0.001         # Q-network learning rate 0.00001
 
         # Memory parameters
         self.memory_size = 10000            # memory capacity
-        self.batch_size = 20                # experience mini-batch size
+        self.batch_size = 100                # experience mini-batch size
         self.pretrain_length = self.batch_size   # number experiences to pretrain the memory
 
         tf.reset_default_graph()
@@ -63,7 +63,7 @@ class playing_schafkopf():
             self.players[i].state_player['dealed_cards']=dealed_cards[i]
             self.players[i].state_player['remaining_cards']=dealed_cards[i]
 
-    def new_game_to_choose(self, random_selection=True, sess=None):
+    def new_game_to_choose(self, random_selection=True, sess=None, epoch=None):
         """
         random_selection: True, game selected radom,
             False, game selected by Q-Net
@@ -78,27 +78,39 @@ class playing_schafkopf():
                    self.players[(first_player+2)%4],
                    self.players[(first_player+3)%4]]
 
-        #for i in range(len(players)):
-        for i in [0]:
+        for i in range(len(players)):
+        #for i in [0]:
             possible_games = players[i].\
                 get_possible_games_to_play(self.state_overall)
 
             if random_selection:
                 selected_game = random.choice(possible_games)
             else:
-                dealed_cards = players[i].state_player['dealed_cards']
-                dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
-                state = self.rules.get_one_hot_cards(dealed_cards_indexed)
-                state = np.array(state)
-                feed = {self.QNetwork.inputs_: state.reshape((1, *state.shape))}
-                Qs = sess.run(self.QNetwork.output, feed_dict=feed)
-                Qs = Qs[0].tolist()
-                possible_actions = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
-                Qs_subset = [i for i in Qs if Qs.index(i) in possible_actions]
-                #action = np.argmax(Qs_subset)
-                action = Qs.index(max(Qs_subset))
-                selected_game = self.rules.games[action]
-
+                # apply RL only on player 0
+                if players[i].state_player['player_id']==0:
+                    dealed_cards = players[i].state_player['dealed_cards']
+                    dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                    state = self.rules.get_one_hot_cards(dealed_cards_indexed)
+                    state = np.array(state)
+                    feed = {self.QNetwork.inputs_: state.reshape((1, *state.shape))}
+                    Qs = sess.run(self.QNetwork.output, feed_dict=feed)
+                    Qs = Qs[0].tolist()
+                    possible_actions = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
+                    
+                    if epoch < 500: #self.train_episodes / 4:
+                        action = np.argmax(Qs)
+                        selected_game = self.rules.games[action]
+                        
+                        if action not in possible_actions:
+                            self.state_overall.state_overall['mistake']=True
+                    else:
+                        Qs_subset = [i for i in Qs if Qs.index(i) in possible_actions]
+                        action = np.argmax(Qs_subset)
+                        action = Qs.index(max(Qs_subset))
+                        selected_game = self.rules.games[action]
+                    
+                else:
+                    selected_game = random.choice(possible_games)
             if selected_game != [None, None]:
                 self.state_overall.state_overall['game']=selected_game
                 self.state_overall.state_overall['game_player']=(first_player+i)%4
@@ -209,7 +221,7 @@ class playing_schafkopf():
                     self.new_game_to_choose()
                 else:
                     # Get action from Q-network
-                    self.new_game_to_choose(False, sess)
+                    self.new_game_to_choose(False, sess, e)
 
                 # Action
                 game = self.state_overall.state_overall['game']
@@ -224,17 +236,24 @@ class playing_schafkopf():
                 dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
                 state = self.rules.get_one_hot_cards(dealed_cards_indexed)
 
-                if self.state_overall.state_overall['game'] != [None, None]:
+                if self.state_overall.state_overall['game'] != [None, None] and \
+                    self.state_overall.state_overall['mistake'] == False:
                     while self.state_overall.state_overall['trick_number'] < 8:
                         self.play()
                     rewards = self.state_overall.get_reward_list()
-                else:
+                elif self.state_overall.state_overall['game'] == [None, None] and \
+                    self.state_overall.state_overall['mistake'] == False:
                     rewards = [0,0,0,0]
+                else: # mistake
+                    rewards = [-300,100,100,100] #penalty
 
                 # Reward
                 reward = rewards[game_player]
-                self.memory.add((state, action, reward))
+                
+                if game_player == 0:
+                    self.memory.add((state, action, reward))
 
+                reward1 = rewards[0]            
                 reward2 = rewards[1]
                 reward3 = rewards[2]
                 reward4 = rewards[3]
@@ -258,13 +277,15 @@ class playing_schafkopf():
                                                self.QNetwork.targetQs_: targets,
                                                self.QNetwork.actions_: actions})
 
-                total_reward1+=reward
+                
+    
+                total_reward1+=reward1
                 total_reward2+=reward2
                 total_reward3+=reward3
                 total_reward4+=reward4
                 #total_reward_sum+=reward_sum
 
-                show_every = 1000
+                show_every = 100
                 if e%show_every==0:
                     print('Episode: {}'.format(e),
                           'Total reward: {}'.format(reward),
@@ -280,14 +301,21 @@ class playing_schafkopf():
                     total_reward3=0
                     total_reward4=0
                     #total_reward_sum=0
+                    
+                    
+                if e%1000==0:    
+                    self.plot_reward(reward_list1,
+                             reward_list2,
+                             reward_list3,
+                             reward_list4)
 
 
 
             #print('Total Reward: {}'.format(total_reward))
-            self.plot_reward(reward_list1,
-                             reward_list2,
-                             reward_list3,
-                             reward_list4)
+            #self.plot_reward(reward_list1,
+            #                 reward_list2,
+            #                 reward_list3,
+            #                 reward_list4)
 
 
             saver.save(sess, "checkpoints/schafkopf.ckpt")
@@ -299,10 +327,10 @@ class playing_schafkopf():
         y3 = reward_list3
         y4 = reward_list4
         fig, ax = plt.subplots()
-        ax.plot(x, y, 'black', alpha=.5, label='RL bot')
-        ax.plot(x, y2, 'red', alpha=.5, label='player 2 (random)')
-        ax.plot(x, y3, 'yellow', alpha=.5, label='player 3 (random)')
-        ax.plot(x, y4, 'orange', alpha=.5, label='player 4 (random)')
+        ax.plot(x, y, 'black', alpha=.5, label='player 0 (RL bot)')
+        ax.plot(x, y2, 'red', alpha=.5, label='player 1 (random)')
+        ax.plot(x, y3, 'yellow', alpha=.5, label='player 2 (random)')
+        ax.plot(x, y4, 'orange', alpha=.5, label='player 3 (random)')
         ax.set(xlabel='epochs x1000', ylabel='avg reward',
                title='Reward ~ epochs')
         ax.legend()

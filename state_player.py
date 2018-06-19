@@ -133,26 +133,43 @@ class state_player():
                                 return possible_cards_to_play
                             else:
                                 return possible_cards_to_play
+        else:
+            if lead_card == [None, None]:
+                return possible_cards_to_play
+            else:
+                # Lead card is a trump
+                if self.rules.get_trumps(game, [lead_card])==[lead_card]:
+
+                    # One has at least one trump remaining: one has to play a trump
+                    if len(self.rules.get_trumps(game, cards_remaining))>0:
+                        possible_cards_to_play = self.rules.get_trumps(game, cards_remaining)
+                        return possible_cards_to_play
+                    else:
+                        return possible_cards_to_play
+
+                # Lead card is a color
+                else:
+                    # One has lead card's color remaining
+                    if len(self.rules.get_specific_cards2(cards_remaining, \
+                    game, card=[lead_card[0], None])) > 0:
+                        possible_cards_to_play=\
+                            self.rules.get_specific_cards2(cards_remaining, \
+                            game, [lead_card[0], None])
+                        return possible_cards_to_play
+                    else:
+                        return possible_cards_to_play
+
 
     def get_possible_games_to_play(self, state_overall):
 
         game_player = state_overall.state_overall['game_player']
         dealed_cards = self.state_player['dealed_cards']
-        possible_games = self.rules.games[:4] # [None, None] and 3 games of type sauspiel
+        possible_games = self.rules.games
 
         # No player defined: one is free to choose a game
         if game_player == None:
             # iterate over every color (except herz)
             for color in [0,1,3]:
-                """
-                cards_in_color=self.rules.get_specific_cards(dealed_cards, [color, None])
-                trumps_in_color=\
-                    self.rules.get_specific_cards(\
-                    (self.rules.get_trumps([color, 0], dealed_cards)), [color, None])
-                if (len(cards_in_color)-len(trumps_in_color))==0\
-                    or [color, 7] in dealed_cards:
-                    possible_games.remove([color, 0])
-                """
                 if len(self.\
                     rules.\
                     get_specific_cards2(cards_list=dealed_cards,
@@ -162,6 +179,5 @@ class state_player():
                     possible_games.remove([color, 0])
         else:
             possible_games = []
-        #print('Dealed Cards: {}'.format(dealed_cards))
-        #print('Possible Games: {}'.format(possible_games))
+        
         return possible_games

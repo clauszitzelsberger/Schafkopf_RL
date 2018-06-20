@@ -26,6 +26,6 @@ Reinforcement Learning applied on the Bavarian card game 'Schafkopf'
 ### Reward ~ epochs after implementing QL for choosing game
 Player 1 = RL bot   
 Player 2-4 = acting random   
-![alt text][logo]
 
-[logo]: https://github.com/clauszitzelsberger/Schafkopf_RL/tree/master/plots/reward_epochs_select_game.PNG "Reward~Epochs"
+![alt text](https://github.com/clauszitzelsberger/Schafkopf_RL/tree/master/plots/reward_epochs_select_game.PNG "Reward~Epochs")
+

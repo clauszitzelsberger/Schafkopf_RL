@@ -12,7 +12,7 @@ Player 1 (RL bot) is learn, while players 2-4 are acting randomly. Afterwards up
 | state_player.py      | states which are valid for single player                         |
 | playing_schaflopf.py | hyperparameters for NNs, training Q Networks                     |
 | QL_choose_game.py    | Q Network achitechture and Memory for choosing game              |
-| QL_select_card.py    | *not yet implemented*                                            |
+| QL_select_card.py    | *not implemented yet*                                            |
 | script.py            | script                                                           |
 
 ## Next steps:

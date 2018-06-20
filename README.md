@@ -27,8 +27,9 @@ Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards u
 
 ## Results:
 ### Reward ~ epochs after implementing QL for choosing game
-Player 1 = RL bot   
-Players 2-4 = acting random   
+Player 1 = choosing game based to dealed cards as a state and NN, but playing cards random  
+Players 2-4 = acting completely random 
+
 
 ![Reward ~ Epochs](plots/reward_epochs_select_game.PNG)
 

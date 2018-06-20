@@ -27,5 +27,5 @@ Reinforcement Learning applied on the Bavarian card game 'Schafkopf'
 Player 1 = RL bot   
 Player 2-4 = acting random   
 
-![alt text](https://github.com/clauszitzelsberger/Schafkopf_RL/tree/master/plots/reward_epochs_select_game.PNG)
+![Reward ~ Epochs](https://github.com/clauszitzelsberger/Schafkopf_RL/tree/master/plots/reward_epochs_select_game.PNG)
 

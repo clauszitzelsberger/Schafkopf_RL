@@ -22,10 +22,13 @@ Reinforcement Learning applied on the Bavarian card game 'Schafkopf'
 | select game process right now simplified   |                                                |
 | Tout, Sie                                  |                                                |
 
+## Approach:
+Player 1 (RL bot) is learn, while players 2-4 are acting randomly. Afterwards update players 2-4 so they act according to the Q Network while player 1 while player 1 is learning again.
+
 ## Results:
 ### Reward ~ epochs after implementing QL for choosing game
 Player 1 = RL bot   
-Player 2-4 = acting random   
+Players 2-4 = acting random   
 
 ![Reward ~ Epochs](plots/reward_epochs_select_game.PNG)
 

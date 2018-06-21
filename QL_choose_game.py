@@ -4,8 +4,8 @@ import numpy as np
 
 class QNetwork:
     def __init__(self, learning_rate=0.01, state_size=32,
-                 action_size=4, hidden_size=10,
-                 name='QNetwork'):
+                 action_size=9, hidden_size1=10, hidden_size2=10,
+                 hidden_size3=10, name='QNetwork'):
         """
         state_size: 8 card
         action_size: 3 possible (sauspiel) games or no game
@@ -22,11 +22,12 @@ class QNetwork:
             self.targetQs_ = tf.placeholder(tf.float32, [None], name='target')
 
             # ReLU hidden layers
-            self.fc1 = tf.contrib.layers.fully_connected(self.inputs_, hidden_size)
-            self.fc2 = tf.contrib.layers.fully_connected(self.fc1, hidden_size)
+            self.fc1 = tf.contrib.layers.fully_connected(self.inputs_, hidden_size1)
+            self.fc2 = tf.contrib.layers.fully_connected(self.fc1, hidden_size2)
+            self.fc3 = tf.contrib.layers.fully_connected(self.fc2, hidden_size3)
 
             # Linear output layer
-            self.output = tf.contrib.layers.fully_connected(self.fc2, action_size,
+            self.output = tf.contrib.layers.fully_connected(self.fc3, action_size,
                                                             activation_fn=None)
 
             ### Train with loss (targetQ - Q)^2

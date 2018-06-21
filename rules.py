@@ -33,7 +33,7 @@ class Rules():
         self.games = [[None, None],               #no game
                       [0,0], [1,0],        [3,0], #sauspiel
                       [0,1], [1,1], [2,1], [3,1], #solo
-                      [0,2], [1,2], [2,2], [3,2]] #wenz
+                      [None, 2]]                  #wenz
 
         self.reward_basic = [0, 20, 50, 50] # no game, sauspiel, solo, wenz
         self.reward_schneider = [0, 10, 20] # normal, schneider, schneider schwarz
@@ -59,7 +59,11 @@ class Rules():
     def name_of_game(self, game):
         color = game[0]
         game_type = game[1]
-        return [self.card_color[color], self.game_names[game_type]]
+        
+        if color == None:
+            return [None, self.game_names[game_type]]
+        else:
+            return [self.card_color[color], self.game_names[game_type]]
 
     def get_specific_cards(self, cards_list, card=[None, None]):
         if card[0] == None and card[1] == None:
@@ -83,7 +87,7 @@ class Rules():
             trump_colors = [game[0]]
             trump_numbers = [4, 5]
         else: #wenz
-            trump_colors = [None]
+            trump_colors = []
             trump_numbers = [4]
         return [[color, number] for color, number in cards_list \
             if color in trump_colors or number in trump_numbers]

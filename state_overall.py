@@ -38,8 +38,8 @@ class state_overall():
 
         first_player=self.state_overall['first_player']
         tick_nr=self.state_overall['trick_number']
-        game = self.state_overall['game']
-        game_name = self.rules.name_of_game(game)[1]
+        game=self.state_overall['game']
+        game_name=self.rules.name_of_game(game)
 
         cards_list=self.state_overall['course_of_game'][tick_nr]
         lead_card=cards_list[first_player]
@@ -116,7 +116,7 @@ class state_overall():
         total_score = sum([score_list[i] for i in game_players])
 
         # Basic reward depending on game type
-        reward = self.rules.reward_basic[game[0]]
+        reward = self.rules.reward_basic[game[1]+1]
 
         # game players loose Schneider schwarz
         if total_score == self.rules.winning_thresholds[0]:
@@ -128,39 +128,39 @@ class state_overall():
         < total_score <= \
         self.rules.winning_thresholds[1]:
             winner = opponents
-            reward = self.rules.reward_schneider[1]
+            reward += self.rules.reward_schneider[1]
 
         # game players loose
         elif self.rules.winning_thresholds[1] \
         < total_score <= \
         self.rules.winning_thresholds[2]:
             winner = opponents
-            reward = self.rules.reward_schneider[0]
+            reward += self.rules.reward_schneider[0]
 
         # game players win
         elif self.rules.winning_thresholds[2] \
         < total_score <= \
         self.rules.winning_thresholds[3]:
             winner = game_players
-            reward = self.rules.reward_schneider[0]
+            reward += self.rules.reward_schneider[0]
 
         # game players win Schneider
         elif self.rules.winning_thresholds[3] \
         < total_score <= \
         self.rules.winning_thresholds[4]:
             winner = game_players
-            reward = self.rules.reward_schneider[1]
+            reward += self.rules.reward_schneider[1]
 
         # game players win Schneider schwarz
         else:
             winner = game_players
-            reward = self.rules.reward_schneider[2]
+            reward += self.rules.reward_schneider[2]
 
         if winner == game_players:
             f_winner=(4-len(winner)) / len(winner)
             f_looser=1
         else:
             f_winner=1
-            f_looser=(4-len(winner)) / len(winner)
+            f_looser=len(winner) / (4-len(winner))
 
         return [reward*f_winner if i in winner else -reward*f_looser for i in all]

@@ -17,13 +17,14 @@ Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards u
 
 ## Next steps:
 | Action                                     |                                                |
-| -------------------------------------------|:-----------------------------------------------|
+| -------------------------------------------|------------------------------------------------|
 | set state davongelaufen                    | identify if player davongelaufen in play()     |
 | QL for selecting cards                     |                                                |
 | QL for doppeln                             |                                                |
 | Stock                                      |                                                |
 | select game process simplified right now   |                                                |
 | Tout, Sie                                  |                                                |
+| Contra                                     |                                                |
 
 ## Results:
 ### Reward ~ epochs after implementing QL for choosing game

@@ -13,7 +13,7 @@ class playing_schafkopf():
     def __init__(self):
         self.rules = Rules()
 
-        self.train_episodes = 100000          # max number of episodes to learn from
+        self.train_episodes = 10000          # max number of episodes to learn from
         #self.max_steps = 200                # max steps in an episode
         self.gamma = 1                       # future reward discount
 
@@ -23,8 +23,10 @@ class playing_schafkopf():
         self.decay_rate = 0.0001            # exponential decay rate for exploration prob
 
         # Network parameters
-        self.hidden_size = 64               # number of units in each Q-network hidden layer 64
-        self.learning_rate = 0.001         # Q-network learning rate 0.00001
+        self.hidden_size1 = 128               # number of units in each Q-network hidden layer 64
+        self.hidden_size2 = 64
+        self.hidden_size3 = 32
+        self.learning_rate = 0.00001         # Q-network learning rate 0.00001
 
         # Memory parameters
         self.memory_size = 10000            # memory capacity
@@ -33,7 +35,9 @@ class playing_schafkopf():
 
         tf.reset_default_graph()
         self.QNetwork = QNetwork(name='main',
-                                 hidden_size=self.hidden_size,
+                                 hidden_size1=self.hidden_size1,
+                                 hidden_size2=self.hidden_size2,
+                                 hidden_size3=self.hidden_size3,
                                  learning_rate=self.learning_rate)
 
         self.memory = Memory(max_size=self.memory_size)
@@ -97,7 +101,7 @@ class playing_schafkopf():
                     Qs = Qs[0].tolist()
                     possible_actions = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
                     
-                    if epoch < 500: #self.train_episodes / 4:
+                    if False: #epoch < 500: #self.train_episodes / 4:
                         action = np.argmax(Qs)
                         selected_game = self.rules.games[action]
                         
@@ -111,9 +115,12 @@ class playing_schafkopf():
                     
                 else:
                     selected_game = random.choice(possible_games)
+            
             if selected_game != [None, None]:
                 self.state_overall.state_overall['game']=selected_game
                 self.state_overall.state_overall['game_player']=(first_player+i)%4
+                #print('Selected game: {}, game_player: {}'.format((self.rules.name_of_game(selected_game)),
+                #                                              (first_player+i)%4))
                 break
 
     def play(self):
@@ -152,6 +159,7 @@ class playing_schafkopf():
             highest_card
         self.state_overall.state_overall['scores'][highest_card] += \
             self.state_overall.get_score()
+        
         self.state_overall.state_overall['trick_number'] += 1
 
     def populate_memory(self):
@@ -247,6 +255,8 @@ class playing_schafkopf():
                 else: # mistake
                     rewards = [-300,100,100,100] #penalty
 
+
+                #print('Rewards: {}'.format(rewards))
                 # Reward
                 reward = rewards[game_player]
                 
@@ -326,12 +336,13 @@ class playing_schafkopf():
         y2 = reward_list2
         y3 = reward_list3
         y4 = reward_list4
+        plt.figure(figsize=(20,6))
         fig, ax = plt.subplots()
         ax.plot(x, y, 'black', alpha=.5, label='player 0 (RL bot)')
         ax.plot(x, y2, 'red', alpha=.5, label='player 1 (random)')
         ax.plot(x, y3, 'yellow', alpha=.5, label='player 2 (random)')
         ax.plot(x, y4, 'orange', alpha=.5, label='player 3 (random)')
-        ax.set(xlabel='epochs x1000', ylabel='avg reward',
+        ax.set(xlabel='epochs x100', ylabel='avg reward',
                title='Reward ~ epochs')
         ax.legend()
         plt.show()

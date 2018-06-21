@@ -6,7 +6,7 @@ Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards u
 
 ## Set up:
 | module               | content                                                          | 
-| -------------------- |:----------------------------------------------------------------:|
+| -------------------- |------------------------------------------------------------------|
 | rules.py             | definition of cards, scores, games, rewards and helper methods   |
 | state_overall.py     | states which are valid for every player                          |
 | state_player.py      | states which are valid for single player                         |

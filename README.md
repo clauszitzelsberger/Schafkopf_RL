@@ -32,4 +32,5 @@ Players 2-4 = acting completely random
 
 
 ![Reward ~ Epochs](plots/reward_epochs_select_game.PNG)
+![Loss ~ Epochs](plots/loss_epochs_select_game.PNG)
 

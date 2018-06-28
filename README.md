@@ -2,7 +2,7 @@
 Reinforcement Learning applied on the Bavarian card game 'Schafkopf'
 
 ## Approach:
-Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards update players 2-4 so they act according to the Q Network while player 1 while player 1 is learning again.
+Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards update players 2-4 so they act according to the Q Network while player 1 is learning again.
 
 ## Set up:
 | module                 | content                                                          | 

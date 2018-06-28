@@ -119,4 +119,12 @@ class Rules():
 
     def get_one_hot_cards(self, cards_list_indexed):
         number_cards = len(self.cards)
-        return [int(i in cards_list_indexed) for i in range(number_cards)]
+        return_ =  [int(i in cards_list_indexed) for i in range(number_cards)]
+        return return_
+
+    def get_one_hot_games(self, game_indexed):
+        number_games = len(self.games)
+        return [int(i in game_indexed) for i in range(number_games)]
+
+    def get_one_hot(self, subgroup, len_group):
+        return [int(i in subgroup) for i in range(len_group)]

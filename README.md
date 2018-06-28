@@ -5,15 +5,18 @@ Reinforcement Learning applied on the Bavarian card game 'Schafkopf'
 Player 1 (RL bot) is learning, while players 2-4 are acting random. Afterwards update players 2-4 so they act according to the Q Network while player 1 while player 1 is learning again.
 
 ## Set up:
-| module               | content                                                          | 
-| -------------------- |------------------------------------------------------------------|
-| rules.py             | definition of cards, scores, games, rewards and helper methods   |
-| state_overall.py     | states which are valid for every player                          |
-| state_player.py      | states which are valid for single player                         |
-| playing_schaflopf.py | hyperparameters for NNs, training Q Networks                     |
-| QL_choose_game.py    | Q Network architechture and Memory for choosing game             |
-| QL_select_card.py    | *not implemented yet*                                            |
-| script.py            | script                                                           |
+| module                 | content                                                          | 
+| ---------------------- |------------------------------------------------------------------|
+| rules.py               | definition of cards, scores, games, rewards and helper methods   |
+| state_overall.py       | states which are valid for every player                          |
+| state_player.py        | states which are valid for single player                         |
+| train_select_game.py   | hyperparameters for NNs, training Q Networks                     |
+| train_select_cards.py  | hyperparameters for NNs, training Q Networks                     |
+| QL_select_game.py      | Q Network architechture and Memory for selecting game            |
+| QL_select_card.py      | Q Network architechture and Memory for selecting cards           |
+| interface_to_states.py | managing states for each player and overall states               |
+| script.py              | script                                                           |
+| helper_functions.py    | e.g. plot functions                                              |
 
 ## Next steps:
 | Action                                     |                                                |

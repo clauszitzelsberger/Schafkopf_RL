@@ -163,6 +163,7 @@ class state_player():
     def get_possible_games_to_play(self, state_overall):
 
         game_player = state_overall.state_overall['game_player']
+        game =  state_overall.state_overall['game']
         dealed_cards = self.state_player['dealed_cards']
         possible_games = self.rules.games
 
@@ -177,7 +178,14 @@ class state_player():
                     game=[color, 0]))==0\
                     or [color,7] in dealed_cards:
                     possible_games.remove([color, 0])
+        elif game[1] == 0: #someone already selected a sauspiel
+            for color in [0,1,3]:
+                possible_games.remove([color, 0])
+        elif game[1] == 2: #someone already selected a wenz
+            for color in [0,1,3]:
+                possible_games.remove([color, 0])
+            possible_games.remove([None, 2])
         else:
             possible_games = []
-        
+
         return possible_games

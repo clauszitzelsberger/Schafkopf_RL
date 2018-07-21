@@ -11,7 +11,7 @@ import random
 
 class train_select_game():
     def __init__(self):
-        self.train_episodes = 10000          # max number of episodes to learn from
+        self.train_episodes = 2000          # max number of episodes to learn from
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
@@ -27,7 +27,7 @@ class train_select_game():
 
         # Memory parameters
         self.memory_size = 10000            # memory capacity
-        self.batch_size = 100                # experience mini-batch size
+        self.batch_size = 64                # experience mini-batch size
         self.pretrain_length = self.batch_size   # number experiences to pretrain the memory
 
         tf.reset_default_graph()
@@ -42,6 +42,8 @@ class train_select_game():
         self.s = interface_to_states()
 
         self.rules = Rules()
+
+        self.reward_scale = 210
 
     def populate_memory(self):
 
@@ -82,6 +84,8 @@ class train_select_game():
                     self.s.update_first_player_trick_nr_score()
 
                 rewards = self.s.return_reward_list()
+                # Scale rewards
+                rewards = [r/self.reward_scale for r in rewards]
             else:
                 rewards = [0,0,0,0]
 
@@ -169,6 +173,8 @@ class train_select_game():
                         self.s.update_first_player_trick_nr_score()
 
                     rewards = self.s.return_reward_list()
+                    # Scale rewards
+                    rewards = [r/self.reward_scale for r in rewards]
                 else:
                     rewards = [0,0,0,0]
 
@@ -181,10 +187,10 @@ class train_select_game():
                 if game_player == 0:
                     self.memory.add((state, action, reward))
 
-                reward1 = rewards[0]
-                reward2 = rewards[1]
-                reward3 = rewards[2]
-                reward4 = rewards[3]
+                reward1 = rewards[0]*self.reward_scale
+                reward2 = rewards[1]*self.reward_scale
+                reward3 = rewards[2]*self.reward_scale
+                reward4 = rewards[3]*self.reward_scale
 
                 # Sample mini-batch from memory
                 batch = self.memory.sample(self.batch_size)
@@ -232,7 +238,8 @@ class train_select_game():
                     h.plot_reward(reward_list1,
                              reward_list2,
                              reward_list3,
-                             reward_list4)
+                             reward_list4,
+                             show_every)
 
             # Plot loss ~ epochs
             h.plot_loss(loss_list)

@@ -3,7 +3,7 @@ from collections import deque
 import numpy as np
 
 class QNetwork:
-    def __init__(self, learning_rate=0.01, state_size=1086,
+    def __init__(self, learning_rate=0.01, state_size=221,#1086,
                  action_size=32, hidden_size1=10, hidden_size2=10,
                  hidden_size3=10, name='QNetworkCard'):
         """
@@ -33,7 +33,12 @@ class QNetwork:
 
             # ReLU hidden layers
             self.fc1 = tf.contrib.layers.fully_connected(self.inputs_, hidden_size1)
+            #self.bn1 = tf.contrib.layers.batch_norm(self.fc1)
+            #self.do1 = tf.contrib.layers.dropout(self.fc1, keep_prob=0.7)
+
             self.fc2 = tf.contrib.layers.fully_connected(self.fc1, hidden_size2)
+            #self.bn2 = tf.contrib.layers.batch_norm(self.fc2)
+            #self.do2 = tf.contrib.layers.dropout(self.fc2, keep_prob=0.7)
             self.fc3 = tf.contrib.layers.fully_connected(self.fc2, hidden_size3)
 
             # Linear output layer

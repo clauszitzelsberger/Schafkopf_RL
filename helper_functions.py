@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 
-def plot_reward(reward_list, reward_list2, reward_list3, reward_list4):
+def plot_reward(reward_list, reward_list2, 
+                reward_list3, reward_list4,
+                show_every):
         x = range(len(reward_list))
         y = reward_list
         y2 = reward_list2
@@ -12,9 +14,9 @@ def plot_reward(reward_list, reward_list2, reward_list3, reward_list4):
         ax.plot(x, y2, 'red', alpha=.5, label='player 1 (random)')
         ax.plot(x, y3, 'yellow', alpha=.5, label='player 2 (random)')
         ax.plot(x, y4, 'orange', alpha=.5, label='player 3 (random)')
-        ax.set(xlabel='epochs x100', ylabel='avg reward',
+        ax.set(xlabel='epochs x{}'.format(show_every), ylabel='avg reward',
                title='Reward ~ epochs')
-        ax.legend()
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.show()
 
 def plot_loss(loss_list):

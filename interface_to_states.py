@@ -124,12 +124,12 @@ class interface_to_states():
         course_of_game = course_of_game.tolist()
         
         # Option 1: exact course of game as state
-        #for card in course_of_game:
-        #    if card == [None, None]:
-        #        state_list.extend([0]*32)
-        #    else:
-        #        state_list.extend(self.rules.get_one_hot_cards([self.rules.get_index(card, 'card')]))
-        #state_list.extend([int(state_overall['davongelaufen'])])
+        for card in course_of_game:
+            if card == [None, None]:
+                state_list.extend([0]*32)
+            else:
+                state_list.extend(self.rules.get_one_hot_cards([self.rules.get_index(card, 'card')]))
+        state_list.extend([int(state_overall['davongelaufen'])])
 
         # Option 2: cards already played
         #played_cards = [card for card in course_of_game if card != [None, None]]
@@ -142,18 +142,18 @@ class interface_to_states():
         #state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
 
         # Option 3: cards already played by each player
-        for p in [0,1,2,3]:
-            # Alocate cards to players
-            played_cards = [item for i, item in enumerate(course_of_game) if (i-p)%4==0]
-            played_cards = [card for card in course_of_game if card != [None, None]]
-            played_cards_indexed = [self.rules.get_index(card, 'card') for card in played_cards]
-            state_list.extend(self.rules.get_one_hot_cards(played_cards_indexed))
+        #for p in [0,1,2,3]:
+        #    # Alocate cards to players
+        #    played_cards = [item for i, item in enumerate(course_of_game) if (i-p)%4==0]
+        #    played_cards = [card for card in course_of_game if card != [None, None]]
+        #    played_cards_indexed = [self.rules.get_index(card, 'card') for card in played_cards]
+        #    state_list.extend(self.rules.get_one_hot_cards(played_cards_indexed))
 
         # Cards played in this trick
-        cards_in_trick = state_overall['course_of_game'][trick_nr]
-        cards_in_trick = [card for card in cards_in_trick if card != [None, None]]
-        cards_in_trick_indexed = [self.rules.get_index(card, 'card') for card in cards_in_trick]
-        state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
+        #cards_in_trick = state_overall['course_of_game'][trick_nr]
+        #cards_in_trick = [card for card in cards_in_trick if card != [None, None]]
+        #cards_in_trick_indexed = [self.rules.get_index(card, 'card') for card in cards_in_trick]
+        #state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
 
 
         state_list.extend([s/120 for s in state_overall['scores']])

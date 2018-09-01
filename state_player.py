@@ -150,6 +150,7 @@ class state_player():
                 # Lead card is a color
                 else:
                     # One has lead card's color remaining
+
                     if len(self.rules.get_specific_cards2(cards_remaining, \
                     game, card=[lead_card[0], None])) > 0:
                         possible_cards_to_play=\

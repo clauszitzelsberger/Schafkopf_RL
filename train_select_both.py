@@ -18,7 +18,9 @@ from QL_select_game import Memory
 
 class train_select_both():
     def __init__(self):
-        self.train_episodes = 2000          # max number of episodes to learn from
+        self.show_plots = True
+        self.show_course_of_game = False
+        self.train_episodes = 3000          # max number of episodes to learn from
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
@@ -81,6 +83,7 @@ class train_select_both():
         self.rules = Rules()
 
         self.reward_scale = 210 # lost solo schneider schwarz
+        self.score_scale = 120
 
     def populate_memoryC(self):
 
@@ -102,6 +105,7 @@ class train_select_both():
             if self.s.return_state_overall()['game'] != [None, None]:
                 states_list = []
                 action_list = []
+                score_list = []
                 while self.s.return_state_overall()['trick_number'] < 8:
                     j+=1
                     first_player = self.s.return_state_overall()['first_player']
@@ -119,24 +123,34 @@ class train_select_both():
                         # Write cards to states
                         self.s.write_card_to_states(selected_card, i)
                     
+                    # Old score
+                    old_score=self.s.return_state_overall()['scores'][0]
+                                
                     # Update states
                     self.s.update_first_player_trick_nr_score()
+
+                    # New score
+                    new_score=self.s.return_state_overall()['scores'][0]
+
+                    score_list.append(new_score-old_score)
                     
                 rewards = self.s.return_reward_list()
                 # Scale rewards
                 rewards = [r/self.reward_scale for r in rewards]
+                scores = [s/self.score_scale for s in score_list]
+
 
                 # Save action, states and reward in memory
                 for i in range(len(states_list)):
                     if i < 7:
                         self.memoryCard.add((states_list[i],
                                     action_list[i],
-                                    0, #reward
+                                    0, #reward#scores[i],#
                                     states_list[i+1]))
                     else:
                         self.memoryCard.add((states_list[i],
                                     action_list[i],
-                                    rewards[0],
+                                    rewards[0],#scores[i],#
                                     np.zeros(np.array(state).shape).tolist()))
 
     def populate_memoryG(self):
@@ -257,10 +271,20 @@ class train_select_both():
                 stateG = self.rules.get_one_hot_cards(dealed_cards_indexed)
 
 
+                
+
                 # Simulate playing
                 if self.s.return_state_overall()['game'] != [None, None]:
+
+                    # Show cards of player 0 when he is player
+                    if e > 1800:
+                        if self.s.return_state_overall()['game_player']==0:
+                            if self.show_course_of_game:
+                                print(self.rules.name_of_cards(dealed_cards))
+
                     states_listC = []
                     action_listC = []
+                    score_list = []
                     while self.s.return_state_overall()['trick_number'] < 8:
                         first_player = self.s.return_state_overall()['first_player']
                         for i in range(4):
@@ -297,12 +321,31 @@ class train_select_both():
                             # Write cards to states
                             self.s.write_card_to_states(selected_card, i)
 
+                            # Visualize course of game
+                            if e > 1800:
+                                if self.s.return_state_overall()['game_player']==0:
+                                    h.return_course_of_game(self.s.return_state_overall(), self.show_course_of_game)
+
+                        
+                        # Old score
+                        old_score=self.s.return_state_overall()['scores'][0]
+                                    
                         # Update states
                         self.s.update_first_player_trick_nr_score()
 
+                        # New score
+                        new_score=self.s.return_state_overall()['scores'][0]
+
+                        score_list.append(new_score-old_score)
+
                     rewards = self.s.return_reward_list()
-                    # Scale rewards
+
+                    # Scale rewards and scores
+                    # Two possibilities: either use reward at the end of the game or score delta 
+                    # after very tick as reward for selecting cards -> second one makes no sense as scores
+                    # of parter are not rewarded
                     rewards = [r/self.reward_scale for r in rewards]
+                    scores = [s/self.score_scale for s in score_list]
 
                     reward1 = rewards[0]*self.reward_scale
                     reward2 = rewards[1]*self.reward_scale
@@ -315,13 +358,35 @@ class train_select_both():
                         if i < 7:
                             self.memoryCard.add((states_listC[i],
                                         action_listC[i],
-                                        0, #reward
+                                        0, #reward#scores[i],#
                                         states_listC[i+1]))
                         else:
                             self.memoryCard.add((states_listC[i],
                                         action_listC[i],
-                                        rewards[0],
+                                        rewards[0],#scores[i],#
                                         np.zeros(np.array(stateC).shape).tolist()))
+
+                    if game_player==0:
+                        self.memoryGame.add((stateG, actionG, rewards[0]))
+                    # Sample mini-batch from memory Game
+                    batchG = self.memoryGame.sample(self.batch_sizeG)
+                    statesG = np.array([each[0] for each in batchG])
+                    actionsG = np.array([each[1] for each in batchG])
+                    rewardsG = np.array([each[2] for each in batchG])
+
+                    # Train network
+                    target_QsG = sess.run(self.QNetworkGame.output,
+                                        feed_dict={self.QNetworkGame.inputs_: statesG})
+
+                    targetsG = rewardsG + self.gamma * np.max(target_QsG, axis=1)
+
+                    lossG, _ = sess.run([self.QNetworkGame.loss, self.QNetworkGame.opt],
+                                        feed_dict={self.QNetworkGame.inputs_: statesG,
+                                                    self.QNetworkGame.targetQs_: targetsG,
+                                                    self.QNetworkGame.actions_: actionsG})
+                    total_lossG+=lossG
+
+
 
 
                     # Sample mini-batch from memory Card
@@ -343,23 +408,7 @@ class train_select_both():
                                                     self.QNetworkCard.actions_: actionsC})
 
 
-                    # Sample mini-batch from memory Game
-                    batchG = self.memoryGame.sample(self.batch_sizeG)
-                    statesG = np.array([each[0] for each in batchG])
-                    actionsG = np.array([each[1] for each in batchG])
-                    rewardsG = np.array([each[2] for each in batchG])
-
-                    # Train network
-                    target_QsG = sess.run(self.QNetworkGame.output,
-                                        feed_dict={self.QNetworkGame.inputs_: statesG})
-
-                    targetsG = rewardsG + self.gamma * np.max(target_QsG, axis=1)
-
-                    lossG, _ = sess.run([self.QNetworkGame.loss, self.QNetworkGame.opt],
-                                        feed_dict={self.QNetworkGame.inputs_: statesG,
-                                                   self.QNetworkGame.targetQs_: targetsG,
-                                                   self.QNetworkGame.actions_: actionsG})
-
+                   
                         
 
 
@@ -367,7 +416,6 @@ class train_select_both():
                     total_reward2+=reward2
                     total_reward3+=reward3
                     total_reward4+=reward4
-                    total_lossG+=lossG
                     total_lossC+=lossC
                     
                 else:
@@ -396,15 +444,15 @@ class train_select_both():
                     total_lossC=0
 
                 if e%500==0:
-                    # Plot reward ~ epochs
+                    #Plot reward ~ epochs
                     h.plot_reward(reward_list1,
                              reward_list2,
                              reward_list3,
-                             reward_list4, show_every)
+                             reward_list4, show_every, self.show_plots)
 
             # Plot loss ~ epochs
-            h.plot_loss(loss_listG, 'Select Game')
-            h.plot_loss(loss_listC, 'Select Cards')
+            h.plot_loss(loss_listG, 'Select Game', self.show_plots)
+            h.plot_loss(loss_listC, 'Select Cards', self.show_plots)
 
             # Save weights of NN
             saver.save(sess, "checkpoints/schafkopf.ckpt")

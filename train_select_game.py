@@ -11,7 +11,7 @@ import random
 
 class train_select_game():
     def __init__(self):
-        self.train_episodes = 2000          # max number of episodes to learn from
+        self.train_episodes = 3000          # max number of episodes to learn from
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
@@ -242,7 +242,7 @@ class train_select_game():
                              show_every)
 
             # Plot loss ~ epochs
-            h.plot_loss(loss_list)
+            h.plot_loss(loss_list, 'Select Game')
 
             # Save weights of NN
             saver.save(sess, "checkpoints/schafkopf.ckpt")

@@ -47,7 +47,6 @@ class train_select_both_apply():
         self.learning_rateG = 0.00001         # Q-network learning rate 0.00001
 
 
-
         # Memory parameters
         self.memory_sizeC = 1000             # memory capacity
         self.batch_sizeC = 64                # experience mini-batch size
@@ -58,33 +57,45 @@ class train_select_both_apply():
         self.batch_sizeG = 64                # experience mini-batch size
         self.pretrain_lengthG = self.batch_sizeG   # number experiences to pretrain the memory
 
-
-
         tf.reset_default_graph()
-        self.QNetworkCard = QNetworkCard(name='mainC',
+
+        # Networks for selecting cards (C) and game (G)
+        # TargetN for player 0
+        self.Target_0_C = QNetworkCard(name='Target_0_C',
+                                         hidden_size1=self.hidden_size1C,
+                                         hidden_size2=self.hidden_size2C,
+                                         hidden_size3=self.hidden_size3C,
+                                         learning_rate=self.learning_rateC)
+        # TargetN for other players
+        self.Target_others_C = QNetworkCard(name='Target_others_C',
+                                         hidden_size1=self.hidden_size1C,
+                                         hidden_size2=self.hidden_size2C,
+                                         hidden_size3=self.hidden_size3C,
+                                         learning_rate=self.learning_rateC)
+        # QNN
+        self.QNN_C = QNetworkCard(name='QNN_C',
                                          hidden_size1=self.hidden_size1C,
                                          hidden_size2=self.hidden_size2C,
                                          hidden_size3=self.hidden_size3C,
                                          learning_rate=self.learning_rateC)
 
-        self.TargetNetworkCard = QNetworkCard(name='targetNetworkC',
-                                              hidden_size1=self.hidden_size1C,
-                                              hidden_size2=self.hidden_size2C,
-                                              hidden_size3=self.hidden_size3C,
-                                              learning_rate=self.learning_rateC)
-
-        self.QNetworkGame = QNetworkGame(name='mainG',
+        self.Target_0_G = QNetworkGame(name='Target_0_G',
+                                         hidden_size1=self.hidden_size1G,
+                                         hidden_size2=self.hidden_size2G,
+                                         hidden_size3=self.hidden_size3G,
+                                         learning_rate=self.learning_rateG)
+        self.Target_others_G = QNetworkGame(name='Target_others_G',
+                                         hidden_size1=self.hidden_size1G,
+                                         hidden_size2=self.hidden_size2G,
+                                         hidden_size3=self.hidden_size3G,
+                                         learning_rate=self.learning_rateG)
+        self.QNN_G = QNetworkGame(name='QNN_G',
                                          hidden_size1=self.hidden_size1G,
                                          hidden_size2=self.hidden_size2G,
                                          hidden_size3=self.hidden_size3G,
                                          learning_rate=self.learning_rateG)
 
-        self.TargetNetworkGame = QNetworkGame(name='targetNetworkG',
-                                         hidden_size1=self.hidden_size1G,
-                                         hidden_size2=self.hidden_size2G,
-                                         hidden_size3=self.hidden_size3G,
-                                         learning_rate=self.learning_rateG)
-
+        # Memories
         self.memoryGame = Memory(max_size=self.memory_sizeG)
 
         self.memoryCard = MemoryCard(max_size=self.memory_sizeC)
@@ -96,7 +107,9 @@ class train_select_both_apply():
         self.reward_scale = 210 # lost solo schneider schwarz
         #self.score_scale = 120
 
-        self.max_tau = 1000 # update Target Network with the DQN mainC/mainG
+        self.max_tau1 = 1000 # update Target Others
+
+        self.max_tau2 = 100 # update Target for player 0
 
     def populate_memoryC(self):
 
@@ -214,16 +227,32 @@ class train_select_both_apply():
             reward = rewards[game_player]
             self.memoryGame.add((state, action, reward, np.zeros(np.array(state).shape).tolist()))
 
-    def update_target_graph(self, model_type='C'):
+    def update_target_graph(self, update_which, learning):
+        """
+        Transfering network-weights from one network
+        to another
+        Params:
+            update_which: network which will be updated
+                by QNN_0
+                - 'to Target_others'
+                - 'to Target_0'
+            learning: which learning network
+                - 'C' selecting cards network
+                - 'G' selecting game
+        """
 
-        DQN_model = 'main' + model_type
-        TargetNetwork_model = 'targetNetwork' + model_type
+        network_from = 'QNN_' + learning
+
+        if update_which == 'to Target_others':
+            network_to = 'Target_others_' + learning
+        elif update_which == 'to Target_0':
+            network_to = 'Target_0_' + learning
     
         # Get the parameters of our DQNNetwork
-        from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, DQN_model)
+        from_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, network_from)
     
         # Get the parameters of our Target_network
-        to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, TargetNetwork_model)
+        to_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, network_to)
 
         op_holder = []
     
@@ -249,7 +278,8 @@ class train_select_both_apply():
         total_reward4=0
         total_lossG=0
         total_lossC=0
-        tau=0
+        tau1=0
+        tau2=0
 
         with tf.Session() as sess:
 
@@ -279,12 +309,12 @@ class train_select_both_apply():
 
                             # Player 0 acts with constantly updating Network, other players act with old network which
                             # will be updated every x episodes
-                            if self.s.return_state_player((first_player+i)%4)['player_id']!=0:# and e<3000:
-                                feedG = {self.TargetNetworkGame.inputs_: stateG.reshape((1, *stateG.shape))}
-                                QsG = sess.run(self.TargetNetworkGame.output, feed_dict=feedG)
+                            if self.s.return_state_player((first_player+i)%4)['player_id']!=0:
+                                feedG = {self.Target_others_G.inputs_: stateG.reshape((1, *stateG.shape))}
+                                QsG = sess.run(self.Target_others_G.output, feed_dict=feedG)
                             else:
-                                feedG = {self.QNetworkGame.inputs_: stateG.reshape((1, *stateG.shape))}
-                                QsG = sess.run(self.QNetworkGame.output, feed_dict=feedG)
+                                feedG = {self.Target_0_G.inputs_: stateG.reshape((1, *stateG.shape))}
+                                QsG = sess.run(self.Target_0_G.output, feed_dict=feedG)
 
                             QsG = QsG[0].tolist()
                             possible_actionsG = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
@@ -350,15 +380,14 @@ class train_select_both_apply():
 
                                 # Player 0 acts with constantly updating Network, other players act with old network which
                                 # will be updated every x episodes
-                                if self.s.return_state_player((first_player+i)%4)['player_id']!=0:# and e<3000:
-                                    feedC = {self.TargetNetworkCard.inputs_: stateC.reshape((1, *stateC.shape))}
-                                    QsC = sess.run(self.TargetNetworkCard.output, feed_dict=feedC)
+                                if self.s.return_state_player((first_player+i)%4)['player_id']!=0:
+                                    feedC = {self.Target_others_C.inputs_: stateC.reshape((1, *stateC.shape))}
+                                    QsC = sess.run(self.Target_others_C.output, feed_dict=feedC)
                                 else:
-                                    feedC = {self.QNetworkCard.inputs_: stateC.reshape((1, *stateC.shape))}
-                                    QsC = sess.run(self.QNetworkCard.output, feed_dict=feedC)
+                                    feedC = {self.Target_0_C.inputs_: stateC.reshape((1, *stateC.shape))}
+                                    QsC = sess.run(self.Target_0_C.output, feed_dict=feedC)
 
-                                feedC = {self.QNetworkCard.inputs_: stateC.reshape((1, *stateC.shape))}
-                                QsC = sess.run(self.QNetworkCard.output, feed_dict=feedC)
+                                
                                 QsC = QsC[0].tolist()
                                 possible_actionsC = [self.rules.get_index(p_g, 'card') for p_g in possible_cards]
                                 Qs_subsetC = [i for i in QsC if QsC.index(i) in possible_actionsC]
@@ -432,8 +461,8 @@ class train_select_both_apply():
                     next_statesC = np.array([each[3] for each in batchC])
 
                     # Train network
-                    target_QsC = sess.run(self.QNetworkCard.output,
-                                        feed_dict={self.QNetworkCard.inputs_: next_statesC}) 
+                    target_QsC = sess.run(self.QNN_C.output,
+                                        feed_dict={self.QNN_C.inputs_: next_statesC}) 
 
                     # Set target_Qs to 0 for states where episode ends
                     episode_endsC = (next_statesC == np.zeros(statesC[0].shape)).all(axis=1)
@@ -441,10 +470,10 @@ class train_select_both_apply():
                     
                     targetsC = rewardsC + self.gamma * np.max(target_QsC, axis=1)
 
-                    lossC, _ = sess.run([self.QNetworkCard.loss, self.QNetworkCard.opt],
-                                        feed_dict={self.QNetworkCard.inputs_: statesC,
-                                                    self.QNetworkCard.targetQs_: targetsC,
-                                                    self.QNetworkCard.actions_: actionsC})
+                    lossC, _ = sess.run([self.QNN_C.loss, self.QNN_C.opt],
+                                        feed_dict={self.QNN_C.inputs_: statesC,
+                                                    self.QNN_C.targetQs_: targetsC,
+                                                    self.QNN_C.actions_: actionsC})
 
 
                     
@@ -473,8 +502,8 @@ class train_select_both_apply():
                 next_statesG = np.array([each[3] for each in batchG])
 
                 # Train network
-                target_QsG = sess.run(self.QNetworkGame.output,
-                                    feed_dict={self.QNetworkGame.inputs_: next_statesG})
+                target_QsG = sess.run(self.QNN_G.output,
+                                    feed_dict={self.QNN_G.inputs_: next_statesG})
 
                 # Set target_Qs to 0 for states where episode ends
                 #episode_endsG = (next_statesG == np.zeros(statesG[0].shape)).all(axis=1)
@@ -482,10 +511,10 @@ class train_select_both_apply():
 
                 targetsG = rewardsG + self.gamma * np.max(target_QsG, axis=1)
 
-                lossG, _ = sess.run([self.QNetworkGame.loss, self.QNetworkGame.opt],
-                                    feed_dict={self.QNetworkGame.inputs_: statesG,
-                                                self.QNetworkGame.targetQs_: targetsG,
-                                                self.QNetworkGame.actions_: actionsG})
+                lossG, _ = sess.run([self.QNN_G.loss, self.QNN_G.opt],
+                                    feed_dict={self.QNN_G.inputs_: statesG,
+                                                self.QNN_G.targetQs_: targetsG,
+                                                self.QNN_G.actions_: actionsG})
                 total_lossG+=lossG
 
 
@@ -512,16 +541,22 @@ class train_select_both_apply():
                     total_lossC=0
 
 
-                if tau >= self.max_tau:
-                        update_targetC = self.update_target_graph(model_type='C')
+                if tau1 >= self.max_tau1:
+                        update_targetC = self.update_target_graph('to Target_others', 'C')
                         sess.run(update_targetC)
-                        #print('ModelC updated')
-                        update_targetG = self.update_target_graph(model_type='G')
+                        update_targetG = self.update_target_graph('to Target_others', 'G')
                         sess.run(update_targetG)
-                        #print('ModelG updated')
-                        tau = 0
+                        tau1 = 0
+                if tau2 >= self.max_tau2:
+                        update_targetC = self.update_target_graph('to Target_0', 'C')
+                        sess.run(update_targetC)
+                        update_targetG = self.update_target_graph('to Target_0', 'G')
+                        sess.run(update_targetG)
+                        tau2 = 0
 
-                tau+=1
+
+                tau1+=1
+                tau2+=1
 
                 if e%500==0:
                     #Plot reward ~ epochs
@@ -585,8 +620,8 @@ class train_select_both_apply():
                         dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
                         stateG = self.rules.get_one_hot_cards(dealed_cards_indexed)
                         stateG = np.array(stateG)
-                        feedG = {self.QNetworkGame.inputs_: stateG.reshape((1, *stateG.shape))}
-                        QsG = sess.run(self.QNetworkGame.output, feed_dict=feedG)
+                        feedG = {self.QNN_G.inputs_: stateG.reshape((1, *stateG.shape))}
+                        QsG = sess.run(self.QNN_G.output, feed_dict=feedG)
                         QsG = QsG[0].tolist()
                         possible_actionsG = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
                         Qs_subsetG = [i for i in QsG if QsG.index(i) in possible_actionsG]
@@ -638,8 +673,8 @@ class train_select_both_apply():
                             #else:
                             state = self.s.return_state_select_card(player_id=0)
                             state = np.array(state)
-                            feed = {self.QNetworkCard.inputs_: state.reshape((1, *state.shape))}
-                            Qs = sess.run(self.QNetworkCard.output, feed_dict=feed)
+                            feed = {self.QNN_C.inputs_: state.reshape((1, *state.shape))}
+                            Qs = sess.run(self.QNN_C.output, feed_dict=feed)
                             Qs = Qs[0].tolist()
                             possible_actions = [self.rules.get_index(p_g, 'card') for p_g in possible_cards]
                             Qs_subset = [i for i in Qs if Qs.index(i) in possible_actions]

@@ -12,15 +12,15 @@ import copy
 import tensorflow as tf
 import random
 import math
-from QL_select_game import QNetwork as QNetworkGame
-from QL_select_game import Memory
+#from QL_select_game import QNetwork as QNetworkGame
+#from QL_select_game import Memory
 
 
 class train_select_both_apply():
     def __init__(self):
-        self.show_plots = False
-        self.show_course_of_game = True
-        self.train_episodes = 10000          # max number of episodes to learn from
+        self.show_plots = True
+        self.show_course_of_game = False
+        self.train_episodes = 5000          # max number of episodes to learn from
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
@@ -36,20 +36,20 @@ class train_select_both_apply():
 
         # Network parameters
         self.hidden_size1C = 64               # number of units in each Q-network hidden layer 64
-        self.hidden_size2C = 64
-        self.hidden_size3C = 64
+        self.hidden_size2C = 32
+        self.hidden_size3C = 18
         self.learning_rateC = 0.000001        # Q-network learning rate 0.00001
 
          # Network parameters
         self.hidden_size1G = 64               # number of units in each Q-network hidden layer 64
-        self.hidden_size2G = 64
-        self.hidden_size3G = 64
-        self.learning_rateG = 0.00001         # Q-network learning rate 0.00001
+        self.hidden_size2G = 32
+        self.hidden_size3G = 18
+        self.learning_rateG = 0.00005         # Q-network learning rate 0.00001
 
 
         # Memory parameters
-        self.memory_sizeC = 1000             # memory capacity
-        self.batch_sizeC = 64                # experience mini-batch size
+        self.memory_sizeC = 128*8             # memory capacity
+        self.batch_sizeC = 128                # experience mini-batch size
         self.pretrain_lengthC = self.batch_sizeC*8   # number experiences to pretrain the memory
 
         # Memory parameters
@@ -96,7 +96,7 @@ class train_select_both_apply():
                                          learning_rate=self.learning_rateG)
 
         # Memories
-        self.memoryGame = Memory(max_size=self.memory_sizeG)
+        self.memoryGame = MemoryGame(max_size=self.memory_sizeG)
 
         self.memoryCard = MemoryCard(max_size=self.memory_sizeC)
 
@@ -107,7 +107,7 @@ class train_select_both_apply():
         self.reward_scale = 210 # lost solo schneider schwarz
         #self.score_scale = 120
 
-        self.max_tau1 = 1000 # update Target Others
+        self.max_tau1 = 2500 # update Target Others
 
         self.max_tau2 = 100 # update Target for player 0
 
@@ -205,7 +205,7 @@ class train_select_both_apply():
                 game_player = self.s.return_state_overall()['game_player']
             dealed_cards = self.s.return_state_player(game_player)['dealed_cards']
             dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
-            state = self.rules.get_one_hot_cards(dealed_cards_indexed)
+            state = self.s.return_state_select_game(player_id=0) #self.rules.get_one_hot_cards(dealed_cards_indexed)
 
             # Simulate playing
             if game != [None, None]:
@@ -304,7 +304,7 @@ class train_select_both_apply():
                         else:
                             dealed_cards = self.s.return_state_player((first_player+i)%4)['dealed_cards']
                             dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
-                            stateG = self.rules.get_one_hot_cards(dealed_cards_indexed)
+                            stateG = self.s.return_state_select_game(i)#self.rules.get_one_hot_cards(dealed_cards_indexed)
                             stateG = np.array(stateG)
 
                             # Player 0 acts with constantly updating Network, other players act with old network which
@@ -313,8 +313,8 @@ class train_select_both_apply():
                                 feedG = {self.Target_others_G.inputs_: stateG.reshape((1, *stateG.shape))}
                                 QsG = sess.run(self.Target_others_G.output, feed_dict=feedG)
                             else:
-                                feedG = {self.Target_0_G.inputs_: stateG.reshape((1, *stateG.shape))}
-                                QsG = sess.run(self.Target_0_G.output, feed_dict=feedG)
+                                feedG = {self.QNN_G.inputs_: stateG.reshape((1, *stateG.shape))}
+                                QsG = sess.run(self.QNN_G.output, feed_dict=feedG)
 
                             QsG = QsG[0].tolist()
                             possible_actionsG = [self.rules.get_index(p_g, 'game') for p_g in possible_games]
@@ -336,11 +336,10 @@ class train_select_both_apply():
                     game_player = random.choice([0,1,2,3])
                 else:
                     game_player = self.s.return_state_overall()['game_player']
-                dealed_cards = self.s.return_state_player(game_player)['dealed_cards']
-                dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
-                stateG = self.rules.get_one_hot_cards(dealed_cards_indexed)
-
-
+                stateG = self.s.return_state_select_game(game_player)
+                #dealed_cards = self.s.return_state_player(game_player)['dealed_cards']
+                #dealed_cards_indexed = [self.rules.get_index(card, 'card') for card in dealed_cards]
+                #stateG = self.rules.get_one_hot_cards(dealed_cards_indexed)
 
 
                 # Simulate playing
@@ -384,8 +383,8 @@ class train_select_both_apply():
                                     feedC = {self.Target_others_C.inputs_: stateC.reshape((1, *stateC.shape))}
                                     QsC = sess.run(self.Target_others_C.output, feed_dict=feedC)
                                 else:
-                                    feedC = {self.Target_0_C.inputs_: stateC.reshape((1, *stateC.shape))}
-                                    QsC = sess.run(self.Target_0_C.output, feed_dict=feedC)
+                                    feedC = {self.QNN_C.inputs_: stateC.reshape((1, *stateC.shape))}
+                                    QsC = sess.run(self.QNN_C.output, feed_dict=feedC)
 
                                 
                                 QsC = QsC[0].tolist()
@@ -461,9 +460,12 @@ class train_select_both_apply():
                     next_statesC = np.array([each[3] for each in batchC])
 
                     # Train network
-                    target_QsC = sess.run(self.QNN_C.output,
-                                        feed_dict={self.QNN_C.inputs_: next_statesC}) 
+                    target_QsC = sess.run(self.Target_0_C.output,
+                                        feed_dict={self.Target_0_C.inputs_: next_statesC}) 
 
+                    #QsC = sess.run(self.QNN_C.output,
+                    #                    feed_dict={self.QNN_C.inputs_: next_statesC})
+                    
                     # Set target_Qs to 0 for states where episode ends
                     episode_endsC = (next_statesC == np.zeros(statesC[0].shape)).all(axis=1)
                     target_QsC[episode_endsC] = np.zeros(target_QsC.shape[1])
@@ -502,8 +504,8 @@ class train_select_both_apply():
                 next_statesG = np.array([each[3] for each in batchG])
 
                 # Train network
-                target_QsG = sess.run(self.QNN_G.output,
-                                    feed_dict={self.QNN_G.inputs_: next_statesG})
+                target_QsG = sess.run(self.Target_0_G.output,
+                                    feed_dict={self.Target_0_G.inputs_: next_statesG})
 
                 # Set target_Qs to 0 for states where episode ends
                 #episode_endsG = (next_statesG == np.zeros(statesG[0].shape)).all(axis=1)
@@ -649,7 +651,7 @@ class train_select_both_apply():
                 # Simulate playing
                 if self.s.return_state_overall()['game'] != [None, None]:
 
-                    if self.s.return_state_overall()['game_player']==0:
+                    if True:#self.s.return_state_overall()['game_player']==0:
                         if self.show_course_of_game:
                             print(self.rules.name_of_cards(dealed_cards))
 
@@ -690,7 +692,7 @@ class train_select_both_apply():
                             self.s.write_card_to_states(selected_card, i)
 
                             # Print course of game
-                            if self.s.return_state_overall()['game_player']==0:
+                            if True:#self.s.return_state_overall()['game_player']==0:
                                 h.return_course_of_game(self.s.return_state_overall(), self.show_course_of_game)
 
 

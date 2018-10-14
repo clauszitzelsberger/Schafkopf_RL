@@ -1,0 +1,29 @@
+# Beim Wenz sticht Ober einen Zehner! bsp:
+                                        Game: None wenz
+                                        Game Player: 0
+                                        Trick Nr: 2
+                                        Scores: [17, 0, 25, 0]
+                                        gras zehner
+gras achter                                                                             gras ober
+                                        gras neuner
+
+# Nicht sicher: Aber häufig beobachtet. Wenn Farbe gespielt wird, und ein Spieler diese Farbe nicht besitzt, wird oft ein Trumpf mit eben dieser Farbe gespielt
+
+# Spieler 3 (unten) sticht:
+                                        Game: None wenz
+                                        Game Player: 0
+                                        Trick Nr: 5
+                                        Scores: [17, 25, 20, 0]
+                                        schellen zehner
+eichel koenig                                                                           gras koenig
+                                        schellen koenig
+
+# Spieler geben keinen Trumpf zu, obwohl sie nicht trumpffrei sind. Spieler 1 (oben) kam raus:
+
+                                        Game: eichel solo
+                                        Game Player: 0
+                                        Trick Nr: 2
+                                        Scores: [0, 14, 0, 7]
+                                        gras ober
+gras achter                                                                             gras neuner
+                                        herz neuner

@@ -1,4 +1,4 @@
-# Beim Wenz sticht Ober einen Zehner! bsp:
+﻿# Beim Wenz sticht Ober einen Zehner! bsp:
                                         Game: None wenz
                                         Game Player: 0
                                         Trick Nr: 2
@@ -27,3 +27,5 @@ eichel koenig                                                                   
                                         gras ober
 gras achter                                                                             gras neuner
                                         herz neuner
+
+# 

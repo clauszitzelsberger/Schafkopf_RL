@@ -3,7 +3,7 @@ from collections import deque
 import numpy as np
 
 class QNetwork:
-    def __init__(self, learning_rate=0.01, state_size=32,
+    def __init__(self, learning_rate=0.01, state_size=20,#32,
                  action_size=9, hidden_size1=10, hidden_size2=10,
                  hidden_size3=10, name='QNetworkGame'):
         """

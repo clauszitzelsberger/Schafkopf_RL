@@ -1,5 +1,6 @@
 import numpy as np
-from random import shuffle
+#from random import shuffle
+import random
 import copy
 
 class Rules():
@@ -42,7 +43,8 @@ class Rules():
 
     def shuffle_cards(self):
         cards = copy.copy(self.cards)
-        shuffle(cards)
+        #random.seed(1)
+        random.shuffle(cards)
         return cards
 
     def deal_cards(self, number_of_players=4):

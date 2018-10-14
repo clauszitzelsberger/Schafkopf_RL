@@ -3,11 +3,11 @@ from collections import deque
 import numpy as np
 
 class QNetwork:
-    def __init__(self, learning_rate=0.01, state_size=1086,
+    def __init__(self, learning_rate=0.01, state_size=225,#1086,
                  action_size=32, hidden_size1=10, hidden_size2=10,
                  hidden_size3=10, name='QNetworkCard'):
         """
-        state_size: 1086
+        state_size: 1086 |225
             - state_overall:
                 - game: 9
                 - game_player: 4

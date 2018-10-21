@@ -85,7 +85,7 @@ class interface_to_states():
         return self.players[player_id].state_player
 
     def return_reward_list(self):
-        return self.state_overall.get_reward_list()
+        return [self.state_overall.get_reward_list(), self.state_overall.get_team_mate()]
 
     def return_state_select_card(self, player_id):
         """
@@ -107,67 +107,90 @@ class interface_to_states():
         state_player = self.return_state_player(player_id)
         state_list =[]
 
-        state_list.extend(self.rules.get_one_hot([player_id],4))
+        #state_list.extend(self.rules.get_one_hot([player_id],4))
 
         game = state_overall['game']
         state_list.extend(self.rules.get_one_hot_games([self.rules.get_index(game, 'game')]))
 
+        # Game player (relative to observed player)
         game_player = state_overall['game_player']
-        state_list.extend(self.rules.get_one_hot([game_player], 4))
+        state_list.extend(self.rules.get_one_hot([(game_player-player_id)%4], 4))
 
         first_player = state_overall['first_player']
-        state_list.extend(self.rules.get_one_hot([first_player], 4))
+        state_list.extend(self.rules.get_one_hot([(first_player-player_id)%4], 4))
 
         trick_nr = state_overall['trick_number']
-        state_list.extend(self.rules.get_one_hot([trick_nr], 8))
+        #state_list.extend(self.rules.get_one_hot([trick_nr], 8))
 
         course_of_game = state_overall['course_of_game']
         course_of_game = np.array(course_of_game)
-        course_of_game = np.squeeze(course_of_game.reshape(8*4,-1,2), axis=1)
-        course_of_game = course_of_game.tolist()
+
+
+        # Reorder course of game to get relative order for observed player
+#        course_of_game = np.swapaxes(course_of_game, 0, 1)
+#        course_of_game = np.array([course_of_game[(player_id+i)%4] for i in np.arange(0,4)])
+#        course_of_game = np.swapaxes(course_of_game, 1, 0)
+#
+#        course_of_game = np.squeeze(course_of_game.reshape(8*4,-1,2), axis=1)
+#        course_of_game = course_of_game.tolist()
         
         # Option 1: exact course of game as state
-        #for card in course_of_game:
-        #    if card == [None, None]:
-        #        state_list.extend([0]*32)
-        #    else:
-        #        state_list.extend(self.rules.get_one_hot_cards([self.rules.get_index(card, 'card')]))
+#        for card in course_of_game:
+#            if card == [None, None]:
+#                state_list.extend([0]*32)
+#            else:
+#                state_list.extend(self.rules.get_one_hot_cards([self.rules.get_index(card, 'card')]))
+        
         #state_list.extend([int(state_overall['davongelaufen'])])
 
         # Option 2: cards already played
-        #played_cards = [card for card in course_of_game if card != [None, None]]
-        #played_cards_indexed = [self.rules.get_index(card, 'card') for card in played_cards]
-        #state_list.extend(self.rules.get_one_hot_cards(played_cards_indexed))
-        # Cards played in this trick
-        #cards_in_trick = state_overall['course_of_game'][trick_nr]
-        #cards_in_trick = [card for card in cards_in_trick if card != [None, None]]
-        #cards_in_trick_indexed = [self.rules.get_index(card, 'card') for card in cards_in_trick]
-        #state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
+#        played_cards = [card for card in course_of_game if card != [None, None]]
+#        played_cards_indexed = [self.rules.get_index(card, 'card') for card in played_cards]
+#        state_list.extend(self.rules.get_one_hot_cards(played_cards_indexed))
+#        # Cards played in this trick
+#        cards_in_trick = state_overall['course_of_game'][trick_nr]
+#        cards_in_trick = [card for card in cards_in_trick if card != [None, None]]
+#        cards_in_trick_indexed = [self.rules.get_index(card, 'card') for card in cards_in_trick]
+#        state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
+
 
         # Option 3: cards already played by each player
-        for p in [0,1,2,3]:
+        # First order cards relatively to observed player
+        course_of_game = np.swapaxes(course_of_game, 0, 1)
+        course_of_game = np.array([course_of_game[(player_id+i)%4] for i in np.arange(0,4)])
+        course_of_game = course_of_game.tolist()
+                                          
+        for p in np.arange(0,4):
             # Alocate cards to players
-            played_cards = [item for i, item in enumerate(course_of_game) if (i-p)%4==0]
-            played_cards = [card for card in course_of_game if card != [None, None]]
+            played_cards = [card for card in course_of_game[p] if card != [None, None]]
             played_cards_indexed = [self.rules.get_index(card, 'card') for card in played_cards]
             state_list.extend(self.rules.get_one_hot_cards(played_cards_indexed))
-
+        
         # Cards played in this trick
         cards_in_trick = state_overall['course_of_game'][trick_nr]
-        cards_in_trick = [card for card in cards_in_trick if card != [None, None]]
-        cards_in_trick_indexed = [self.rules.get_index(card, 'card') for card in cards_in_trick]
-        state_list.extend(self.rules.get_one_hot_cards(cards_in_trick_indexed))
+        # order cards
+        cards_in_trick = [cards_in_trick[(player_id+i)%4] for i in np.arange(0,4)]
+        
+        for card in cards_in_trick:
+            if card == [None, None]:
+                state_list.extend([0]*32)
+            else:
+                state_list.extend(self.rules.get_one_hot_cards([self.rules.get_index(card, 'card')]))
 
+        #state_list.extend([s/120 for s in state_overall['scores']])
 
-        state_list.extend([s/120 for s in state_overall['scores']])
+        #remaining_cards = state_player['remaining_cards']
+        #remaining_cards_indexed = [self.rules.get_index(card, 'card') for card in remaining_cards]
+        #state_list.extend(self.rules.get_one_hot_cards(remaining_cards_indexed))
 
-        remaining_cards = state_player['remaining_cards']
-        remaining_cards_indexed = [self.rules.get_index(card, 'card') for card in remaining_cards]
-        state_list.extend(self.rules.get_one_hot_cards(remaining_cards_indexed))
+        # Make use of state for select game
+        state_list.extend(self.return_state_select_game(player_id, state_player['remaining_cards']))
+
+        
 
         return state_list
 
-    def return_state_select_game(self, player_id):
+    def return_state_select_game(self, player_id, cards_list=None):
         """
         return complete state for a player given his id:
         States space to be a vector:
@@ -177,7 +200,10 @@ class interface_to_states():
         - Number of Unter: 4
         - Nummber of Ober: 4
         """
-        dealed_cards = self.return_state_player(player_id)['dealed_cards']
+        if cards_list==None:
+            dealed_cards = self.return_state_player(player_id)['dealed_cards']
+        else:
+            dealed_cards = cards_list
 
         state_list=[]
 

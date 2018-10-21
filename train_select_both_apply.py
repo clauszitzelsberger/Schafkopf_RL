@@ -12,25 +12,22 @@ import copy
 import tensorflow as tf
 import random
 import math
-#from QL_select_game import QNetwork as QNetworkGame
-#from QL_select_game import Memory
-
 
 class train_select_both_apply():
     def __init__(self):
         self.show_plots = True
         self.show_course_of_game = False
-        self.train_episodes = 5000          # max number of episodes to learn from
+        self.train_episodes = 10000          # max number of episodes to learn from
         self.gamma = 1                       # future reward discount
 
         # Exploration parameters
-        self.explore_startC = 0.8            # exploration probability at start
-        self.explore_stopC = 0.05            # minimum exploration probability 0.01
-        self.decay_rateC = 0.0005            # exponential decay rate for exploration prob 0.00001
+        self.explore_startC = 1            # exploration probability at start
+        self.explore_stopC = 0.01            # minimum exploration probability 0.01
+        self.decay_rateC = 0.001            # exponential decay rate for exploration prob 0.00001
 
          # Exploration parameters
-        self.explore_startG = 0.8            # exploration probability at start
-        self.explore_stopG = 0.05            # minimum exploration probability 0.01
+        self.explore_startG = 1               # exploration probability at start
+        self.explore_stopG = 0.01            # minimum exploration probability 0.01
         self.decay_rateG = 0.001            # exponential decay rate for exploration prob
 
 
@@ -44,7 +41,7 @@ class train_select_both_apply():
         self.hidden_size1G = 64               # number of units in each Q-network hidden layer 64
         self.hidden_size2G = 32
         self.hidden_size3G = 18
-        self.learning_rateG = 0.00005         # Q-network learning rate 0.00001
+        self.learning_rateG = 0.0001         # Q-network learning rate 0.00001
 
 
         # Memory parameters
@@ -107,9 +104,9 @@ class train_select_both_apply():
         self.reward_scale = 210 # lost solo schneider schwarz
         #self.score_scale = 120
 
-        self.max_tau1 = 2500 # update Target Others
+        self.max_tau1 = 2000 # update Target Others
 
-        self.max_tau2 = 100 # update Target for player 0
+        self.max_tau2 = 500 # update Target for player 0
 
     def populate_memoryC(self):
 
@@ -131,7 +128,7 @@ class train_select_both_apply():
             if self.s.return_state_overall()['game'] != [None, None]:
                 states_list = []
                 action_list = []
-                #score_list = []
+                score_list = []
                 while self.s.return_state_overall()['trick_number'] < 8:
                     j+=1
                     first_player = self.s.return_state_overall()['first_player']
@@ -150,34 +147,56 @@ class train_select_both_apply():
                         self.s.write_card_to_states(selected_card, i)
 
                     # Old score
-                    #old_score=self.s.return_state_overall()['scores'][0]
+                    old_score=copy.copy(self.s.return_state_overall()['scores'])
 
                     # Update states
                     self.s.update_first_player_trick_nr_score()
 
                     # New score
-                    #new_score=self.s.return_state_overall()['scores'][0]
+                    new_score=copy.copy(self.s.return_state_overall()['scores'])
 
-                    #score_list.append(new_score-old_score)
+                    score_list.append([new_score[i] - old_score[i] for i in range(len(new_score))])
 
-                rewards = self.s.return_reward_list()
+                rewards = self.s.return_reward_list()[0]
+                team_mate = self.s.return_reward_list()[1]
+                score_list = np.array(score_list)
                 # Scale rewards
                 rewards = [r/self.reward_scale for r in rewards]
                 #scores = [s/self.score_scale for s in score_list]
 
+
+                score_list=score_list.swapaxes(0,1)
+                game_player = self.s.return_state_overall()['game_player']
+
+                # Sauspiel with team mate
+                if team_mate != None: 
+                    score_list = score_list[0] + score_list[team_mate]
+                # Solo, game player 0
+                elif game_player == 0:
+                    score_list=score_list[0]
+                # Solo game player 1-3
+                else:
+                    score_list=[score_list[i] for i in np.arange(0,4) if i != game_player]
+                    score_list=sum(score_list)
+
+                # Scale score list according to total score
+                score_list= np.zeros(8) if sum(score_list)==0 else score_list/sum(score_list)
+                #score_list=score_list/120
 
                 # Save action, states and reward in memory
                 for i in range(len(states_list)):
                     if i < 7:
                         self.memoryCard.add((states_list[i],
                                     action_list[i],
-                                    rewards[0],#0, #reward#scores[i],#
+                                    score_list[i]*rewards[0],#0, #reward#scores[i],#
                                     states_list[i+1]))
                     else:
                         self.memoryCard.add((states_list[i],
                                     action_list[i],
-                                    rewards[0],#scores[i],#
+                                    score_list[i]*rewards[0],#scores[i],#
                                     np.zeros(np.array(state).shape).tolist()))
+
+        print('Memory C populated')
 
     def populate_memoryG(self):
 
@@ -217,7 +236,7 @@ class train_select_both_apply():
 
                     self.s.update_first_player_trick_nr_score()
 
-                rewards = self.s.return_reward_list()
+                rewards = self.s.return_reward_list()[0]
                 # Scale rewards
                 rewards = [r/self.reward_scale for r in rewards]
             else:
@@ -226,6 +245,8 @@ class train_select_both_apply():
             # Reward
             reward = rewards[game_player]
             self.memoryGame.add((state, action, reward, np.zeros(np.array(state).shape).tolist()))
+
+        print('Memory G populated')
 
     def update_target_graph(self, update_which, learning):
         """
@@ -259,6 +280,9 @@ class train_select_both_apply():
         # Update our target_network parameters with DQNNetwork parameters
         for from_var,to_var in zip(from_vars,to_vars):
             op_holder.append(to_var.assign(from_var))
+
+        print(network_to + ' Network updated')
+
         return op_holder
 
     def training(self):
@@ -353,7 +377,7 @@ class train_select_both_apply():
 
                     states_listC = []
                     action_listC = []
-                    #score_list = []
+                    score_list = []
                     while self.s.return_state_overall()['trick_number'] < 8:
                         first_player = self.s.return_state_overall()['first_player']
                         for i in range(4):
@@ -408,17 +432,23 @@ class train_select_both_apply():
 
 
                         # Old score
-                        #old_score=self.s.return_state_overall()['scores'][0]
+                        old_score = copy.copy(self.s.return_state_overall()['scores'])
 
                         # Update states
                         self.s.update_first_player_trick_nr_score()
 
                         # New score
-                        #new_score=self.s.return_state_overall()['scores'][0]
 
-                        #score_list.append(new_score-old_score)
+                        new_score = copy.copy(self.s.return_state_overall()['scores'])
 
-                    rewards = self.s.return_reward_list()
+                        # Score List
+                        score_list.append([new_score[i] - old_score[i] for i in range(len(new_score))])
+
+
+                    rewards = self.s.return_reward_list()[0]
+                    team_mate = self.s.return_reward_list()[1]
+                    score_list=np.array(score_list)
+
 
                     # Scale rewards and scores
                     # Three possibilities: either use reward at the end of the game or score delta
@@ -428,23 +458,48 @@ class train_select_both_apply():
                     rewards = [r/self.reward_scale for r in rewards]
                     #scores = [s/self.score_scale for s in score_list]
 
+                    # Weighted reward list
+
+                    score_list=score_list.swapaxes(0,1)
+
+                    # Sauspiel with team mate
+                    if team_mate != None: 
+                        score_list = score_list[0] + score_list[team_mate]
+                    # Solo, game player 0
+                    elif game_player == 0:
+                        score_list=score_list[0]
+                    # Solo game player 1-3
+                    else:
+                        score_list=np.array([score_list[i] for i in np.arange(0,4) if i != game_player])
+                        score_list=sum(score_list)
+
+                    # Scale score list according to total score
+                    score_list= np.zeros(8) if sum(score_list)==0 else score_list/sum(score_list)
+                    #score_list=score_list/120
+
                     reward1 = rewards[0]*self.reward_scale
                     reward2 = rewards[1]*self.reward_scale
                     reward3 = rewards[2]*self.reward_scale
                     reward4 = rewards[3]*self.reward_scale
 
+                    # Evtl reward nur positiv gestalten:
+                    # 0 reward = solo schneider schwarz verloren
+                    # und dann positiv => addition von 210 zu jedem reward
+                    # anschließend reward mit scores multiplizieren
+                    # oder reward nur für Game aber nicht für Cards verwenden
+                    # und differenz der Scores zwischen den Gegnern berechnen
 
                     # Save action, states and reward in memory
                     for i in range(len(states_listC)):
                         if i < 7:
                             self.memoryCard.add((states_listC[i],
                                         action_listC[i],
-                                        rewards[0],#0, #reward#scores[i],#
+                                        score_list[i]*rewards[0],#0, #reward#scores[i],#
                                         states_listC[i+1]))
                         else:
                             self.memoryCard.add((states_listC[i],
                                         action_listC[i],
-                                        rewards[0],#scores[i],#
+                                        score_list[i]*rewards[0],#scores[i],#
                                         np.zeros(np.array(stateC).shape).tolist()))
 
                     
